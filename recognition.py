@@ -30,8 +30,8 @@ sensor.skip_frames(time = 2000) #等待5s
 
 
 #SUB = "s1"
-NUM_SUBJECTS = 1   #图像库中不同人数，一共2人
-NUM_SUBJECTS_IMGS = 25  #每人有20张样本图片
+NUM_SUBJECTS = 2   #图像库中不同人数，一共2人
+NUM_SUBJECTS_IMGS = 10  #每人有20张样本图片
 
 img = None
 pmin = 999999
@@ -74,7 +74,7 @@ while(True):
     if not face:
         continue
     #img = image.Image("singtown/%s/1.pgm"%(SUB))
-    d0 = img.find_lbp(face)
+    d0 = img.find_lbp(face,face)
     # d0为当前人脸的lbp特征
     for s in range(1, NUM_SUBJECTS+1):
         dist = 0

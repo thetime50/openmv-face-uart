@@ -29,7 +29,7 @@ sensor.skip_frames(time = 2000)
 
 num = 1 #设置被拍摄者序号，第一个人的图片保存到s1文件夹，第二个人的图片保存到s2文件夹，以此类推。每次更换拍摄者时，修改num值。
 
-n = 25 #设置每个人拍摄图片数量。
+n = 10 #设置每个人拍摄图片数量。
 
 # Load Haar Cascade
 # By default this will use all stages, lower satges is faster but less accurate.
@@ -77,7 +77,7 @@ while(n):
     face = facsTest(img)
     if not face:
         continue
-    img.save(photoFpath) # or "example.bmp" (or others)
+    img.save(photoFpath,face) # or "example.bmp" (or others)
 
     n -= 1
 
