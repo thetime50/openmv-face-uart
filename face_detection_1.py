@@ -11,7 +11,7 @@
 # contrast check in constant time (the reason for feature detection being
 # grayscale only is because of the space requirment for the integral image).
 
-import sensor, time, image, pyb, os
+import sensor, time, image, pyb, os, ustruct
 
 # Reset sensor
 sensor.reset()
@@ -41,14 +41,35 @@ clock = time.clock()
 #########################################
 
 THRESHOLD_SIZE = 9000 # 脸部大小阈值
+SAMPLING_COUNT = 15
 
 RED_LED_PIN = 1
 BLUE_LED_PIN = 3
 
+# UART on pins P4 (TX) and P5 (RX)
+uart = pyb.UART(3, 9600, timeout_char = 50)
+
+# cammand 命令
+CMD_USER1 = 0x01
+CMD_USER2 = 0x02
+CMD_USER3 = 0x03
+CMD_BREAK = 0x04
+CMD_CLEAR = 0x05
+
+# response 应答
+RPS_OK = 0x01
+RPS_FACE = 0x02
+RPS_MASK = 0x03
+
 #########################################
 
 
-
+def uartTx(val):
+    #return uart.writechar(val)
+    return uart.write(ustruct.pack("<b", val))
+def uartRx():
+    # ustruct.pack("<b", val)
+    return uart.readchar()
 
 
 def facsTest(img,thresholdSize = THRESHOLD_SIZE):
@@ -114,6 +135,11 @@ def recognition(timeout = 500):
     img = None
     basePath = "photo"
     #basePath = "desc"
+    users = os.listdir(basePath)
+    if not len(users):
+        pyb.delay(timeout)
+        return None
+
     time_start = pyb.millis()
     while not face:
         if pyb.elapsed_millis(time_start) > timeout:
@@ -124,7 +150,6 @@ def recognition(timeout = 500):
         return None
     nowDesc = img.find_lbp(face)
 
-    users = os.listdir(basePath)
     matchMin = 999999
     matchUser = ''
     matchArr = []
@@ -150,8 +175,7 @@ def recognition(timeout = 500):
     print(matchMin,matchUser,matchArr)
     return matchUser
 
-def main():
-
+def debugFun():
     #sampling('233',10,500)
     #sensor.skip_frames(time = 1500) #等待5s
     #sampling('666',10,500)
@@ -169,5 +193,56 @@ def main():
         # Print FPS.
         # Note: Actual FPS is higher, streaming the FB makes it slower.
         #print(clock.fps())
+
+def registerUser(user):
+    sampling(user,SAMPLING_COUNT)
+
+def pathForEach(path,cb):
+    path = path
+    users = os.listdir(path)
+    for user in users:
+        baseDpath = "%s/%s" %(path,user)
+        cb and cb(baseDpath)
+def clearUsers():
+    print("clearUsers")
+    def rmFile(path):
+        os.remove(path)
+    def rmPath(path):
+        pathForEach(path,rmFile)
+        os.rmdir(path)
+    pathForEach("photo",rmPath)
+    pathForEach("desc",rmPath)
+    uartTx(RPS_OK)
+
+def checkUser():
+    result = recognition(20)
+    print(result)
+
+def appFun():
+    time_start = pyb.millis()
+    while (True):
+        nowTime = pyb.elapsed_millis(time_start)
+        if nowTime % 1000 > 1:
+            pyb.LED(RED_LED_PIN).off()
+        elif nowTime>1000:
+            pyb.LED(RED_LED_PIN).on()
+            time_start = pyb.millis()
+        val = uartRx()
+        if val != -1:
+            pyb.LED(RED_LED_PIN).off()
+            if val == CMD_USER1 :
+                registerUser(1)
+            elif val == CMD_USER2 :
+                registerUser(2)
+            elif val == CMD_USER3 :
+                registerUser(3)
+            elif val == CMD_CLEAR:
+                clearUsers()
+        else:
+            checkUser()
+
+def main():
+    # debugFun()
+    appFun()
 
 main()
