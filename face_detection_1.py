@@ -133,12 +133,18 @@ def sampling(user,cnt,interval = 500):
 def recognition(timeout = 500):
     face = None
     img = None
+
+
+    matchMin = 999999
+    matchUser = ''
+    matchArr = []
+
     basePath = "photo"
     #basePath = "desc"
     users = os.listdir(basePath)
     if not len(users):
         pyb.delay(timeout)
-        return None
+        return matchUser,face
 
     time_start = pyb.millis()
     while not face:
@@ -147,12 +153,9 @@ def recognition(timeout = 500):
         img = sensor.snapshot()
         face = facsTest(img)
     if not face:
-        return None
+        return matchUser,face
     nowDesc = img.find_lbp(face)
 
-    matchMin = 999999
-    matchUser = ''
-    matchArr = []
     for user in users:
         matchResult = 0
         baseDpath = "%s/%s" %(basePath,user)
@@ -173,7 +176,7 @@ def recognition(timeout = 500):
             matchMin = matchResult
             matchUser = user
     print(matchMin,matchUser,matchArr)
-    return matchUser
+    return matchUser,face
 
 def debugFun():
     #sampling('233',10,500)
@@ -215,18 +218,27 @@ def clearUsers():
     uartTx(RPS_OK)
 
 def checkUser():
-    result = recognition(20)
-    print(result)
+    result = 0
+    user,face = recognition(20)
+    print("user:",user,"face:",face)
+    if face:
+        result = (result | RPS_FACE)
+    if user:
+        user = int(user)
+        result = (result | (user<<4))
+    uartTx(result)
+
 
 def appFun():
-    time_start = pyb.millis()
+    timeStart = pyb.millis()
+    timeCheck = pyb.millis()
     while (True):
-        nowTime = pyb.elapsed_millis(time_start)
+        nowTime = pyb.elapsed_millis(timeStart)
         if nowTime % 1000 > 1:
             pyb.LED(RED_LED_PIN).off()
         elif nowTime>1000:
             pyb.LED(RED_LED_PIN).on()
-            time_start = pyb.millis()
+            timeStart = pyb.millis()
         val = uartRx()
         if val != -1:
             pyb.LED(RED_LED_PIN).off()
@@ -239,7 +251,11 @@ def appFun():
             elif val == CMD_CLEAR:
                 clearUsers()
         else:
-            checkUser()
+            deltaTime = pyb.elapsed_millis(timeCheck)
+            if deltaTime>500:
+                pyb.LED(RED_LED_PIN).off()
+                timeCheck = pyb.millis()
+                checkUser()
 
 def main():
     # debugFun()
