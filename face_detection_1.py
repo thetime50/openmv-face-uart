@@ -109,12 +109,15 @@ def sampling(user,cnt,interval = 500):
         print(descFpath)
     print("finished!")
 
-def recognition(interval = 500):
+def recognition(timeout = 500):
     face = None
     img = None
     basePath = "photo"
     #basePath = "desc"
+    time_start = pyb.millis()
     while not face:
+        if pyb.elapsed_millis(time_start) > timeout:
+            break
         img = sensor.snapshot()
         face = facsTest(img)
     if not face:
@@ -149,9 +152,9 @@ def recognition(interval = 500):
 
 def main():
 
-    sampling('233',10,500)
-    sensor.skip_frames(time = 1500) #等待5s
-    sampling('666',10,500)
+    #sampling('233',10,500)
+    #sensor.skip_frames(time = 1500) #等待5s
+    #sampling('666',10,500)
     while (True):
         clock.tick()
         matchUser = recognition()
