@@ -29,11 +29,11 @@ sensor.skip_frames(time = 2000)
 
 num = 1 #设置被拍摄者序号，第一个人的图片保存到s1文件夹，第二个人的图片保存到s2文件夹，以此类推。每次更换拍摄者时，修改num值。
 
-n = 50 #设置每个人拍摄图片数量。
+n = 25 #设置每个人拍摄图片数量。
 
 # Load Haar Cascade
 # By default this will use all stages, lower satges is faster but less accurate.
-face_cascade = image.HaarCascade("frontalface", stages=25)
+face_cascade = image.HaarCascade("frontalface", stages=200)
 print(face_cascade)
 def facsTest(img,thresholdSize = 1000):
     # Find objects.
@@ -59,7 +59,7 @@ def facsTest(img,thresholdSize = 1000):
 while(n):
     #红灯亮
     pyb.LED(RED_LED_PIN).on()
-    sensor.skip_frames(time = 500) # Give the user time to get ready.等待3s，准备一下表情。
+    sensor.skip_frames(time = 400) # Give the user time to get ready.等待3s，准备一下表情。
 
     #红灯灭，蓝灯亮
     pyb.LED(RED_LED_PIN).off()
