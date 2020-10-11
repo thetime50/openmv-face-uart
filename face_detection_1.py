@@ -11,7 +11,7 @@
 # contrast check in constant time (the reason for feature detection being
 # grayscale only is because of the space requirment for the integral image).
 
-import sensor, time, image
+import sensor, time, image, pyb, os
 
 # Reset sensor
 sensor.reset()
@@ -31,9 +31,17 @@ print(face_cascade)
 # FPS clock
 clock = time.clock()
 
+#########################################
+#################参数定义#################
+#########################################
+THRESHOLD_SIZE = 7000 # 脸部大小阈值
 
-def facsTest(img):
+RED_LED_PIN = 1
+BLUE_LED_PIN = 3
+#########################################
 
+
+def facsTest(img,thresholdSize = THRESHOLD_SIZE):
     # Find objects.
     # Note: Lower scale factor scales-down the image more and detects smaller objects.
     # Higher threshold results in a higher detection rate, with more false positives.
@@ -42,7 +50,6 @@ def facsTest(img):
     # Draw objects
     face = None
     maxSize = 0
-    thresholdSize = 7000
     #thresholdSize = 0
     for r in objects:
         size = r[2] * r[3]
@@ -53,8 +60,45 @@ def facsTest(img):
     face and img.draw_rectangle(face)
     return face
 
+def sampling(user,cnt,interval = 3000):
+    for n in range(cnt):
+        #红灯亮
+        pyb.LED(RED_LED_PIN).on()
+        sensor.skip_frames(time = interval) # Give the user time to get ready.等待3s，准备一下表情。
+
+        #红灯灭，蓝灯亮
+        pyb.LED(RED_LED_PIN).off()
+        pyb.LED(BLUE_LED_PIN).on()
+
+        #保存截取到的图片到SD卡
+        photoDpath = "photo/%s" % (user)
+        photoFpath = photoDpath + "/%s.bmp" % (n)
+        try:
+            os.listdir(photoDpath)
+        except:
+            os.mkdir(photoDpath)
+
+        img = sensor.snapshot().save(photoFpath) # or "example.bmp" (or others)
+
+
+        descDpath = "desc/%s" % (user)
+        descFpath = descDpath + "/%s.orb" % (n)
+        try:
+            os.listdir(descDpath)
+        except:
+            os.mkdir(descDpath)
+
+        d0 = img.find_lbp((0, 0, img.width(), img.height()))
+        image.save_descriptor(d0,descFpath)
+
+        pyb.LED(BLUE_LED_PIN).off()
+    print("finished!")
+
+
 
 def main():
+
+    sampling('233',5,1000)
     while (True):
         clock.tick()
 
@@ -62,7 +106,7 @@ def main():
         img = sensor.snapshot()
 
         face = facsTest(img)
-        print(face,face and (face[2] * face[3]),bool(face))
+        #print(face,face and (face[2] * face[3]),bool(face))
 
         # Print FPS.
         # Note: Actual FPS is higher, streaming the FB makes it slower.
