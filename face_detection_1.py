@@ -31,14 +31,22 @@ print(face_cascade)
 # FPS clock
 clock = time.clock()
 
+
+
+
 #########################################
 #################参数定义#################
 #########################################
+
 THRESHOLD_SIZE = 7000 # 脸部大小阈值
 
 RED_LED_PIN = 1
 BLUE_LED_PIN = 3
+
 #########################################
+
+
+
 
 
 def facsTest(img,thresholdSize = THRESHOLD_SIZE):
