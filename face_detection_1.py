@@ -23,9 +23,11 @@ sensor.set_gainceiling(16)
 sensor.set_framesize(sensor.HQVGA)
 sensor.set_pixformat(sensor.GRAYSCALE)
 
+sensor.skip_frames(time = 2000) #等待5s
+
 # Load Haar Cascade
 # By default this will use all stages, lower satges is faster but less accurate.
-face_cascade = image.HaarCascade("frontalface", stages=25)
+face_cascade = image.HaarCascade("frontalface", stages=2000)
 print(face_cascade)
 
 # FPS clock
@@ -68,7 +70,7 @@ def facsTest(img,thresholdSize = THRESHOLD_SIZE):
     face and img.draw_rectangle(face)
     return face
 
-def sampling(user,cnt,interval = 3000):
+def sampling(user,cnt,interval = 500):
     for n in range(cnt):
         #红灯亮
         pyb.LED(RED_LED_PIN).on()
@@ -86,8 +88,12 @@ def sampling(user,cnt,interval = 3000):
         except:
             os.mkdir(photoDpath)
 
-        img = sensor.snapshot().save(photoFpath) # or "example.bmp" (or others)
-
+        face = None
+        img = None
+        while not face:
+            img = sensor.snapshot()
+            face = facsTest(img)
+        img.save(photoFpath,face) # or "example.bmp" (or others)
 
         descDpath = "desc/%s" % (user)
         descFpath = descDpath + "/%s.orb" % (n)
@@ -96,25 +102,66 @@ def sampling(user,cnt,interval = 3000):
         except:
             os.mkdir(descDpath)
 
-        d0 = img.find_lbp((0, 0, img.width(), img.height()))
+        d0 = img.find_lbp(face)
         image.save_descriptor(d0,descFpath)
 
         pyb.LED(BLUE_LED_PIN).off()
+        print(descFpath)
     print("finished!")
 
+def recognition(interval = 500):
+    face = None
+    img = None
+    basePath = "photo"
+    #basePath = "desc"
+    while not face:
+        img = sensor.snapshot()
+        face = facsTest(img)
+    if not face:
+        return None
+    nowDesc = img.find_lbp(face)
 
+    users = os.listdir(basePath)
+    matchMin = 999999
+    matchUser = ''
+    matchArr = []
+    for user in users:
+        matchResult = 0
+        baseDpath = "%s/%s" %(basePath,user)
+        files = os.listdir(baseDpath)
+        for file_ in files:
+            #descFpath = baseDpath+"/"+file_
+            #oldDesc = image.load_decriptor(descFpath)
+
+            photoFpath = baseDpath+"/"+file_
+            oldImg = image.Image(photoFpath)
+            oldDesc = oldImg.find_lbp((0, 0, oldImg.width(), oldImg.height()))
+
+            match = image.match_descriptor(nowDesc, oldDesc)
+            matchResult += match
+        matchResult= matchResult/len(files)
+        matchArr.append(matchResult)
+        if matchResult < matchMin:
+            matchMin = matchResult
+            matchUser = user
+    print(matchMin,matchUser,matchArr)
+    return matchUser
 
 def main():
 
-    sampling('233',5,1000)
+    sampling('233',10,500)
+    sensor.skip_frames(time = 1500) #等待5s
+    sampling('666',10,500)
     while (True):
         clock.tick()
+        matchUser = recognition()
+        print(matchUser)
 
-        # Capture snapshot
-        img = sensor.snapshot()
+        # # Capture snapshot
+        # img = sensor.snapshot()
 
-        face = facsTest(img)
-        print(face,face and (face[2] * face[3]),bool(face))
+        # face = facsTest(img)
+        # print(face,face and (face[2] * face[3]),bool(face))
 
         # Print FPS.
         # Note: Actual FPS is higher, streaming the FB makes it slower.
