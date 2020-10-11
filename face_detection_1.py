@@ -38,7 +38,7 @@ clock = time.clock()
 #################参数定义#################
 #########################################
 
-THRESHOLD_SIZE = 7000 # 脸部大小阈值
+THRESHOLD_SIZE = 9000 # 脸部大小阈值
 
 RED_LED_PIN = 1
 BLUE_LED_PIN = 3
@@ -114,7 +114,7 @@ def main():
         img = sensor.snapshot()
 
         face = facsTest(img)
-        #print(face,face and (face[2] * face[3]),bool(face))
+        print(face,face and (face[2] * face[3]),bool(face))
 
         # Print FPS.
         # Note: Actual FPS is higher, streaming the FB makes it slower.

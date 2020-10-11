@@ -34,15 +34,12 @@ NUM_SUBJECTS = 2   #图像库中不同人数，一共2人
 NUM_SUBJECTS_IMGS = 10  #每人有20张样本图片
 
 img = None
-pmin = 999999
-num=0
-
 
 # Load Haar Cascade
 # By default this will use all stages, lower satges is faster but less accurate.
 face_cascade = image.HaarCascade("frontalface", stages=200)
 print(face_cascade)
-def facsTest(img,thresholdSize = 1000):
+def facsTest(img,thresholdSize = 9000):
     # Find objects.
     # Note: Lower scale factor scales-down the image more and detects smaller objects.
     # Higher threshold results in a higher detection rate, with more false positives.
@@ -68,6 +65,8 @@ def min(pmin, a, s):
         num=s
     return pmin
 while(True):
+    pmin = 999999
+    num=0
     #  拍摄当前人脸。
     img = sensor.snapshot()
     face = facsTest(img)

@@ -27,7 +27,7 @@ sensor.set_pixformat(sensor.GRAYSCALE)
 sensor.skip_frames(10) # Let new settings take affect.
 sensor.skip_frames(time = 2000)
 
-num = 1 #设置被拍摄者序号，第一个人的图片保存到s1文件夹，第二个人的图片保存到s2文件夹，以此类推。每次更换拍摄者时，修改num值。
+num = 2 #设置被拍摄者序号，第一个人的图片保存到s1文件夹，第二个人的图片保存到s2文件夹，以此类推。每次更换拍摄者时，修改num值。
 
 n = 10 #设置每个人拍摄图片数量。
 
@@ -35,7 +35,7 @@ n = 10 #设置每个人拍摄图片数量。
 # By default this will use all stages, lower satges is faster but less accurate.
 face_cascade = image.HaarCascade("frontalface", stages=200)
 print(face_cascade)
-def facsTest(img,thresholdSize = 1000):
+def facsTest(img,thresholdSize = 9000):
     # Find objects.
     # Note: Lower scale factor scales-down the image more and detects smaller objects.
     # Higher threshold results in a higher detection rate, with more false positives.
