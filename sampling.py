@@ -10,21 +10,56 @@ RED_LED_PIN = 1
 BLUE_LED_PIN = 3
 
 sensor.reset() # Initialize the camera sensor.
-sensor.set_pixformat(sensor.GRAYSCALE) # or sensor.GRAYSCALE
-sensor.set_framesize(sensor.B128X128) # or sensor.QQVGA (or others)
-sensor.set_windowing((92,112))
+
+###
+# sensor.set_pixformat(sensor.GRAYSCALE) # or sensor.GRAYSCALE
+# sensor.set_framesize(sensor.B128X128) # or sensor.QQVGA (or others)
+# sensor.set_windowing((92,112))
+
+###
+# Sensor settings
+sensor.set_contrast(3)
+sensor.set_gainceiling(16)
+# HQVGA and GRAYSCALE are the best for face tracking.
+sensor.set_framesize(sensor.HQVGA)
+sensor.set_pixformat(sensor.GRAYSCALE)
+
 sensor.skip_frames(10) # Let new settings take affect.
 sensor.skip_frames(time = 2000)
 
 num = 1 #设置被拍摄者序号，第一个人的图片保存到s1文件夹，第二个人的图片保存到s2文件夹，以此类推。每次更换拍摄者时，修改num值。
 
-n = 8 #设置每个人拍摄图片数量。
+n = 50 #设置每个人拍摄图片数量。
+
+# Load Haar Cascade
+# By default this will use all stages, lower satges is faster but less accurate.
+face_cascade = image.HaarCascade("frontalface", stages=25)
+print(face_cascade)
+def facsTest(img,thresholdSize = 1000):
+    # Find objects.
+    # Note: Lower scale factor scales-down the image more and detects smaller objects.
+    # Higher threshold results in a higher detection rate, with more false positives.
+    objects = img.find_features(face_cascade, threshold=0.75, scale_factor=1.25)
+
+    # Draw objects
+    face = None
+    maxSize = 0
+    #thresholdSize = 0
+    for r in objects:
+        size = r[2] * r[3]
+        if size > thresholdSize and size > maxSize:
+            maxSize = size
+            face = r
+
+    face and img.draw_rectangle(face)
+    return face
+
 
 #连续拍摄n张照片，每间隔3s拍摄一次。
 while(n):
     #红灯亮
     pyb.LED(RED_LED_PIN).on()
-    sensor.skip_frames(time = 1500) # Give the user time to get ready.等待3s，准备一下表情。
+    sensor.skip_frames(time = 500) # Give the user time to get ready.等待3s，准备一下表情。
 
     #红灯灭，蓝灯亮
     pyb.LED(RED_LED_PIN).off()
@@ -38,7 +73,11 @@ while(n):
         os.listdir(photoDpath)
     except:
         os.mkdir(photoDpath)
-    sensor.snapshot().save(photoFpath) # or "example.bmp" (or others)
+    img = sensor.snapshot()
+    face = facsTest(img)
+    if not face:
+        continue
+    img.save(photoFpath) # or "example.bmp" (or others)
 
     n -= 1
 
