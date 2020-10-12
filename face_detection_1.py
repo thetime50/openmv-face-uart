@@ -25,19 +25,11 @@ sensor.set_pixformat(sensor.GRAYSCALE)
 
 sensor.skip_frames(time = 2000) #等待5s
 
-# Load Haar Cascade
-# By default this will use all stages, lower satges is faster but less accurate.
-face_cascade = image.HaarCascade("frontalface", stages=2000)
-print(face_cascade)
-
-# FPS clock
-clock = time.clock()
-
 
 
 
 #########################################
-#################参数定义#################
+################ 参数定义 ################
 #########################################
 
 THRESHOLD_SIZE = 9000 # 脸部大小阈值
@@ -61,8 +53,24 @@ RPS_OK = 0x01
 RPS_FACE = 0x02
 RPS_MASK = 0x03
 
+# HaarCascade 人脸检测
+HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
+
+# descriptor 样本比较参数
+DESC_THRESHOLD = 20 # 70 default 0-100
+DESC_FILTER_OUTLIERS = True #False default #true 更宽松
 #########################################
 
+
+
+
+# Load Haar Cascade
+# By default this will use all stages, lower satges is faster but less accurate.
+face_cascade = image.HaarCascade("frontalface", stages=HAAR_FACE_STAGES)
+print(face_cascade)
+
+# FPS clock
+clock = time.clock()
 
 def uartTx(val):
     #return uart.writechar(val)
@@ -71,6 +79,12 @@ def uartRx():
     # ustruct.pack("<b", val)
     return uart.readchar()
 
+oldState = 0xff
+def stateTx(state):
+    global oldState
+    if state != oldState :
+        oldState = state
+        return uartTx(state)
 
 def facsTest(img,thresholdSize = THRESHOLD_SIZE):
     # Find objects.
@@ -92,6 +106,7 @@ def facsTest(img,thresholdSize = THRESHOLD_SIZE):
     return face
 
 def sampling(user,cnt,interval = 500):
+    maxFace = THRESHOLD_SIZE
     for n in range(cnt):
         #红灯亮
         pyb.LED(RED_LED_PIN).on()
@@ -111,9 +126,16 @@ def sampling(user,cnt,interval = 500):
 
         face = None
         img = None
+        
         while not face:
             img = sensor.snapshot()
             face = facsTest(img)
+            if face:
+                size = face[2] * face[3]
+                maxFace = max(maxFace, size)
+                if size < maxFace * 0.85:
+                    face = None
+
         img.save(photoFpath,face) # or "example.bmp" (or others)
 
         descDpath = "desc/%s" % (user)
@@ -142,9 +164,6 @@ def recognition(timeout = 500):
     basePath = "photo"
     #basePath = "desc"
     users = os.listdir(basePath)
-    if not len(users):
-        pyb.delay(timeout)
-        return matchUser,face
 
     time_start = pyb.millis()
     while not face:
@@ -154,6 +173,11 @@ def recognition(timeout = 500):
         face = facsTest(img)
     if not face:
         return matchUser,face
+
+    if not len(users):
+        # pyb.delay(timeout)
+        return matchUser,face
+
     nowDesc = img.find_lbp(face)
 
     for user in users:
@@ -168,9 +192,13 @@ def recognition(timeout = 500):
             oldImg = image.Image(photoFpath)
             oldDesc = oldImg.find_lbp((0, 0, oldImg.width(), oldImg.height()))
 
-            match = image.match_descriptor(nowDesc, oldDesc)
+            match = image.match_descriptor(
+                nowDesc, oldDesc,
+                DESC_THRESHOLD,
+                DESC_FILTER_OUTLIERS
+            )
             matchResult += match
-        matchResult= matchResult/len(files)
+        matchResult= matchResult/(len(files) or 1)
         matchArr.append(matchResult)
         if matchResult < matchMin:
             matchMin = matchResult
@@ -226,7 +254,7 @@ def checkUser():
     if user:
         user = int(user)
         result = (result | (user<<4))
-    uartTx(result)
+    stateTx(result)
 
 
 def appFun():
