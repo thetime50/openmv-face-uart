@@ -46,7 +46,7 @@ HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
 
 # descriptor 样本比较参数
 DESC_THRESHOLD = 95 # 70 default 0-100
-DESC_FILTER_OUTLIERS = False #False default #true 更宽松
+DESC_FILTER_OUTLIERS = True #False default #True 更宽松
 
 
 # cammand 命令
@@ -144,7 +144,7 @@ def sampling(user,cnt,interval = 500):
             if face:
                 size = face[2] * face[3]
                 maxFace = max(maxFace, size)
-                if size < maxFace * 0.85:
+                if size < maxFace * 0.9:
                     face = None
 
         img.save(photoFpath,face) # or "example.bmp" (or others)
@@ -214,7 +214,7 @@ def recognition(timeout = 500):
         if matchResult < matchMin:
             matchMin = matchResult
             matchUser = user
-    print(matchMin,matchUser,matchArr)
+    print(matchMin,matchUser,matchArr,(matchArr[0]-matchArr[1]))
     return matchUser,face
 
 def debugFun():

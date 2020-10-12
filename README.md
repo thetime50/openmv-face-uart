@@ -108,3 +108,15 @@ example:
 >break
 
 ```
+
+
+
+## data log
+
+| THRESHOLD | FILTER_OUTLIERS | result | f1 | f1 |
+| :-- | :-- | :-- | :-- | :-- |
+| 95 | False |  |  |  |
+| 5  | False |  |  |  |
+| 95 | True  |  |  |  |
+| 5  | True  |  |  |  |
+ 
