@@ -41,6 +41,14 @@ BLUE_LED_PIN = 3
 # UART on pins P4 (TX) and P5 (RX)
 uart = pyb.UART(3, 9600, timeout_char = 50)
 
+# HaarCascade 人脸检测
+HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
+
+# descriptor 样本比较参数
+DESC_THRESHOLD = 95 # 70 default 0-100
+DESC_FILTER_OUTLIERS = False #False default #true 更宽松
+
+
 # cammand 命令
 CMD_USER1 = 0x01
 CMD_USER2 = 0x02
@@ -52,16 +60,19 @@ CMD_CLEAR = 0x05
 RPS_OK = 0x01
 RPS_FACE = 0x02
 RPS_MASK = 0x03
-
-# HaarCascade 人脸检测
-HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
-
-# descriptor 样本比较参数
-DESC_THRESHOLD = 20 # 70 default 0-100
-DESC_FILTER_OUTLIERS = True #False default #true 更宽松
 #########################################
 
 
+try:
+    os.listdir('desc')
+except:
+    print('mkdir desc')
+    os.mkdir('desc')
+try:
+    os.listdir('photo')
+except:
+    print('mkdir photo')
+    os.mkdir('photo')
 
 
 # Load Haar Cascade
@@ -139,7 +150,7 @@ def sampling(user,cnt,interval = 500):
         img.save(photoFpath,face) # or "example.bmp" (or others)
 
         descDpath = "desc/%s" % (user)
-        descFpath = descDpath + "/%s.orb" % (n)
+        descFpath = descDpath + "/%s.lbp" % (n)
         try:
             os.listdir(descDpath)
         except:
@@ -185,8 +196,8 @@ def recognition(timeout = 500):
         baseDpath = "%s/%s" %(basePath,user)
         files = os.listdir(baseDpath)
         for file_ in files:
-            #descFpath = baseDpath+"/"+file_
-            #oldDesc = image.load_decriptor(descFpath)
+            # descFpath = baseDpath+"/"+file_
+            # oldDesc = image.load_descriptor(descFpath)
 
             photoFpath = baseDpath+"/"+file_
             oldImg = image.Image(photoFpath)
@@ -227,6 +238,7 @@ def debugFun():
 
 def registerUser(user):
     sampling(user,SAMPLING_COUNT)
+    uartTx(RPS_OK)
 
 def pathForEach(path,cb):
     path = path
@@ -255,6 +267,7 @@ def checkUser():
         user = int(user)
         result = (result | (user<<4))
     stateTx(result)
+    # uartTx(result)
 
 
 def appFun():
