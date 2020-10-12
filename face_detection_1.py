@@ -266,8 +266,8 @@ def checkUser():
     if user:
         user = int(user)
         result = (result | (user<<4))
-    stateTx(result)
-    # uartTx(result)
+    # stateTx(result)
+    uartTx(result)
 
 
 def appFun():
