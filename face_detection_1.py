@@ -49,6 +49,9 @@ MATCH_THRESHOLD = 3500 # 匹配值小于此值才是匹配到注册过的用户
 SAMPLING_SKIP = 3 # 采样前跳过3 个样本
 CHECK_MIN_CNT = 6 # 计算最小n个对比人员样本的平均值 如果是0 计算所有的平均值
 
+##
+# 重点改这两和值
+##
 # 硬件配置
 # UART on pins P4 (TX) and P5 (RX)
 uart = pyb.UART(3, 9600, timeout_char = 50)
@@ -142,6 +145,7 @@ def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
 def sampling(user,cnt,interval = 500):
     # maxFace = THRESHOLD_SIZE
     maxFace = samplingSkip(SAMPLING_SKIP)
+    clearUser(user)
     for n in range(cnt):
         #红灯亮
         pyb.LED(RED_LED_PIN).on()
@@ -271,10 +275,25 @@ def registerUser(user):
 
 def pathForEach(path,cb):
     path = path
-    users = os.listdir(path)
+    try:
+        users = os.listdir(path)
+    except:
+        print("no path:",path)
     for user in users:
         baseDpath = "%s/%s" %(path,user)
         cb and cb(baseDpath)
+
+def clearUser(user):
+    user = str(user)
+    print("clearUser:",user)
+    def rmFile(path):
+        os.remove(path)
+    pathForEach("photo/"+user,rmFile)
+    os.rmdir("photo/"+user)
+    pathForEach("desc/"+user,rmFile)
+    os.rmdir("desc/"+user)
+    uartTx(RPS_OK)
+
 def clearUsers():
     print("clearUsers")
     def rmFile(path):
