@@ -44,10 +44,10 @@ HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
 # descriptor 样本比较参数
 DESC_THRESHOLD = 95 # 70 default 0-100
 DESC_FILTER_OUTLIERS = True #False default #True 更宽松
-MATCH_THRESHOLD = 99999 # 匹配值小于此值才是匹配到注册过的用户
+MATCH_THRESHOLD = 3500 # 匹配值小于此值才是匹配到注册过的用户
 
 SAMPLING_SKIP = 3 # 采样前跳过3 个样本
-CHECK_MIN_CNT = 3 # 计算最小n个对比人员样本的平均值 如果是0 计算所有的平均值
+CHECK_MIN_CNT = 6 # 计算最小n个对比人员样本的平均值 如果是0 计算所有的平均值
 
 # 硬件配置
 # UART on pins P4 (TX) and P5 (RX)
@@ -239,9 +239,10 @@ def recognition(timeout = 500):
         matchResult= sum(userDescArr[:sliceCnt])/sliceCnt
         matchArr.append(matchResult)
         print(userDescArr,sliceCnt)
-        if matchResult < matchMin and matchResult < MATCH_THRESHOLD:
+        if matchResult < matchMin :
             matchMin = matchResult
-            matchUser = user
+            if matchResult < MATCH_THRESHOLD:
+                matchUser = user
     print(matchMin,matchUser,matchArr,len(matchArr)>=2 and (matchArr[0]-matchArr[1]))
     return matchUser,face
 
