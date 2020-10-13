@@ -48,6 +48,7 @@ HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
 DESC_THRESHOLD = 95 # 70 default 0-100
 DESC_FILTER_OUTLIERS = True #False default #True 更宽松
 
+SAMPLING_SKIP = 3 # 采样前跳过3 个样本
 
 # cammand 命令
 CMD_USER1 = 0x01
@@ -116,8 +117,28 @@ def facsTest(img,thresholdSize = THRESHOLD_SIZE):
     face and img.draw_rectangle(face)
     return face
 
+def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
+    size = 0
+    maxFace = thresholdSize
+    face = None
+    img = None
+    for i in range(cnt):
+        pyb.delay(interval)
+        while not face:
+            img = sensor.snapshot()
+            face = facsTest(img,thresholdSize)
+            if face:
+                size = face[2] * face[3]
+                maxFace = max(maxFace, size)
+                if size < maxFace * 0.9:
+                    face = None
+    print("samplingSkip",size)
+    return size
+    
+
 def sampling(user,cnt,interval = 500):
-    maxFace = THRESHOLD_SIZE
+    # maxFace = THRESHOLD_SIZE
+    maxFace = samplingSkip(SAMPLING_SKIP)
     for n in range(cnt):
         #红灯亮
         pyb.LED(RED_LED_PIN).on()
