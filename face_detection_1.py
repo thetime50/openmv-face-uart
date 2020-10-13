@@ -136,7 +136,7 @@ def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
             if face:
                 size = face[2] * face[3]
                 maxFace = max(maxFace, size)
-                if size < maxFace * 0.9:
+                if size < maxFace * 0.87:
                     face = None
     print("samplingSkip",size)
     return size
@@ -279,6 +279,7 @@ def pathForEach(path,cb):
         users = os.listdir(path)
     except:
         print("no path:",path)
+        return
     for user in users:
         baseDpath = "%s/%s" %(path,user)
         cb and cb(baseDpath)
@@ -289,9 +290,15 @@ def clearUser(user):
     def rmFile(path):
         os.remove(path)
     pathForEach("photo/"+user,rmFile)
-    os.rmdir("photo/"+user)
+    try:
+        os.rmdir("photo/"+user)
+    except:
+        pass
     pathForEach("desc/"+user,rmFile)
-    os.rmdir("desc/"+user)
+    try:
+        os.rmdir("desc/"+user)
+    except:
+        pass
     uartTx(RPS_OK)
 
 def clearUsers():
