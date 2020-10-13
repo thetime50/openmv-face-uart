@@ -33,7 +33,7 @@ sensor.skip_frames(time = 2000) #等待5s
 #########################################
 
 THRESHOLD_SIZE = 9000 # 脸部大小阈值
-SAMPLING_COUNT = 15
+SAMPLING_COUNT = 30 # 15
 
 RED_LED_PIN = 1
 BLUE_LED_PIN = 3
@@ -47,6 +47,7 @@ DESC_FILTER_OUTLIERS = True #False default #True 更宽松
 MATCH_THRESHOLD = 99999 # 匹配值小于此值才是匹配到注册过的用户
 
 SAMPLING_SKIP = 3 # 采样前跳过3 个样本
+CHECK_MIN_CNT = 3 # 计算最小n个对比人员样本的平均值 如果是0 计算所有的平均值
 
 # 硬件配置
 # UART on pins P4 (TX) and P5 (RX)
@@ -166,9 +167,10 @@ def sampling(user,cnt,interval = 500):
             face = facsTest(img)
             if face:
                 size = face[2] * face[3]
-                maxFace = max(maxFace, size)
-                if size < maxFace * 0.9:
+                if size < maxFace * 0.88:
                     face = None
+                elif size > maxFace:
+                    maxFace = maxFace*0.35 + size*(1-0.35)
 
         img.save(photoFpath,face) # or "example.bmp" (or others)
 
@@ -215,7 +217,7 @@ def recognition(timeout = 500):
     nowDesc = img.find_lbp(face)
 
     for user in users:
-        matchResult = 0
+        userDescArr = []
         baseDpath = "%s/%s" %(basePath,user)
         files = os.listdir(baseDpath)
         for file_ in files:
@@ -231,13 +233,16 @@ def recognition(timeout = 500):
                 DESC_THRESHOLD,
                 DESC_FILTER_OUTLIERS
             )
-            matchResult += match
-        matchResult= matchResult/(len(files) or 1)
+            userDescArr.append(match)
+        userDescArr.sort()
+        sliceCnt = CHECK_MIN_CNT or len(userDescArr)
+        matchResult= sum(userDescArr[:sliceCnt])/sliceCnt
         matchArr.append(matchResult)
+        print(userDescArr,sliceCnt)
         if matchResult < matchMin and matchResult < MATCH_THRESHOLD:
             matchMin = matchResult
             matchUser = user
-    print(matchMin,matchUser,matchArr,(matchArr[0]-matchArr[1]))
+    print(matchMin,matchUser,matchArr,len(matchArr)>=2 and (matchArr[0]-matchArr[1]))
     return matchUser,face
 
 def debugFun():
