@@ -38,17 +38,19 @@ SAMPLING_COUNT = 15
 RED_LED_PIN = 1
 BLUE_LED_PIN = 3
 
-# UART on pins P4 (TX) and P5 (RX)
-uart = pyb.UART(3, 9600, timeout_char = 50)
-
 # HaarCascade 人脸检测
 HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
 
 # descriptor 样本比较参数
 DESC_THRESHOLD = 95 # 70 default 0-100
 DESC_FILTER_OUTLIERS = True #False default #True 更宽松
+MATCH_THRESHOLD = 99999 # 匹配值小于此值才是匹配到注册过的用户
 
 SAMPLING_SKIP = 3 # 采样前跳过3 个样本
+
+# 硬件配置
+# UART on pins P4 (TX) and P5 (RX)
+uart = pyb.UART(3, 9600, timeout_char = 50)
 
 # cammand 命令
 CMD_USER1 = 0x01
@@ -232,7 +234,7 @@ def recognition(timeout = 500):
             matchResult += match
         matchResult= matchResult/(len(files) or 1)
         matchArr.append(matchResult)
-        if matchResult < matchMin:
+        if matchResult < matchMin and matchResult < MATCH_THRESHOLD:
             matchMin = matchResult
             matchUser = user
     print(matchMin,matchUser,matchArr,(matchArr[0]-matchArr[1]))
