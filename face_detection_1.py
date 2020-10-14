@@ -131,6 +131,7 @@ def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
     for i in range(cnt):
         pyb.delay(interval)
         while not face:
+            pyb.LED(BLUE_LED_PIN).on()
             img = sensor.snapshot()
             face = facsTest(img,thresholdSize)
             if face:
@@ -138,7 +139,10 @@ def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
                 maxFace = max(maxFace, size)
                 if size < maxFace * 0.87:
                     face = None
+                else:# 只有这里是有效face
+                    pyb.LED(BLUE_LED_PIN).off()
     print("samplingSkip",size)
+    pyb.LED(BLUE_LED_PIN).off()
     return size
     
 
