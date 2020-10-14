@@ -11,7 +11,7 @@
 # contrast check in constant time (the reason for feature detection being
 # grayscale only is because of the space requirment for the integral image).
 
-import sensor, time, image, pyb, os, ustruct
+import sensor, time, image, pyb, os, ustruct, lcd
 
 # Reset sensor
 sensor.reset()
@@ -20,7 +20,7 @@ sensor.reset()
 sensor.set_contrast(3)
 sensor.set_gainceiling(16)
 # HQVGA and GRAYSCALE are the best for face tracking.
-sensor.set_framesize(sensor.HQVGA)
+sensor.set_framesize(sensor.HQVGA) # HQVGA 240x160
 sensor.set_pixformat(sensor.GRAYSCALE)
 
 sensor.skip_frames(time = 2000) #等待5s
@@ -67,7 +67,18 @@ CMD_CLEAR = 0x05
 RPS_OK = 0x01
 RPS_FACE = 0x02
 RPS_MASK = 0x03
+
+HAVE_LCD_MODULE = False
 #########################################
+
+
+try:
+    lcd.init()
+    HAVE_LCD_MODULE = True
+    print("lcd init ok")
+except:
+    HAVE_LCD_MODULE = False
+    print("lcd init error")
 
 
 try:
@@ -89,6 +100,11 @@ print(face_cascade)
 
 # FPS clock
 clock = time.clock()
+
+
+def checkDisplay(img):
+    if HAVE_LCD_MODULE:
+        lcd.display(img)
 
 def uartTx(val):
     #return uart.writechar(val)
@@ -134,6 +150,7 @@ def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
             pyb.LED(BLUE_LED_PIN).on()
             img = sensor.snapshot()
             face = facsTest(img,thresholdSize)
+            checkDisplay(img)
             if face:
                 size = face[2] * face[3]
                 maxFace = max(maxFace, size)
@@ -173,6 +190,7 @@ def sampling(user,cnt,interval = 500):
         while not face:
             img = sensor.snapshot()
             face = facsTest(img)
+            checkDisplay(img)
             if face:
                 size = face[2] * face[3]
                 if size < maxFace * 0.88:
@@ -215,6 +233,7 @@ def recognition(timeout = 500):
             break
         img = sensor.snapshot()
         face = facsTest(img)
+        checkDisplay(img)
     if not face:
         return matchUser,face
 
