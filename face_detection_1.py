@@ -35,9 +35,6 @@ sensor.skip_frames(time = 2000) #等待5s
 THRESHOLD_SIZE = 9000 # 脸部大小阈值
 SAMPLING_COUNT = 30 # 15
 
-RED_LED_PIN = 1
-BLUE_LED_PIN = 3
-
 # HaarCascade 人脸检测
 HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
 
@@ -50,9 +47,13 @@ SAMPLING_SKIP = 3 # 采样前跳过3 个样本
 CHECK_MIN_CNT = 6 # 计算最小n个对比人员样本的平均值 如果是0 计算所有的平均值
 
 ##
-# 重点改这两和值
+# 重点改MATCH_THRESHOLD和CHECK_MIN_CNT这两个值
 ##
+
 # 硬件配置
+RED_LED_PIN = 1
+BLUE_LED_PIN = 3
+
 # UART on pins P4 (TX) and P5 (RX)
 uart = pyb.UART(3, 9600, timeout_char = 50)
 
