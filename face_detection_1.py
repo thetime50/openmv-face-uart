@@ -40,8 +40,8 @@ HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
 HAAR_MOUTH_STAGES = 50
 HAAR_NOSE_STAGES = 50
 
-HAAR_MOUTH_CHECK = False
-HAAR_NOSE_CHECK = False
+HAAR_MOUTH_CHECK = False # 7k
+HAAR_NOSE_CHECK = False # 1K
 
 # descriptor 样本比较参数
 DESC_THRESHOLD = 95 # 70 default 0-100
@@ -99,31 +99,37 @@ except:
     os.mkdir('photo')
 
 
-# Load Haar Cascade
-# By default this will use all stages, lower satges is faster but less accurate.
-face_cascade = image.HaarCascade("frontalface", stages=HAAR_FACE_STAGES)
-print(face_cascade)
+def loadFaceCascade():
+    # Load Haar Cascade
+    # By default this will use all stages, lower satges is faster but less accurate.
+    face_cascade = image.HaarCascade("frontalface", stages=HAAR_FACE_STAGES)
+    # print(face_cascade)
+    return face_cascade
 
 # https://github.com/opencv/opencv/tree/master/data/haarcascades
 # https://github.com/openmv/openmv/blob/master/ml/haarcascade/cascade_convert.py
 # https://github.com/atduskgreg/opencv-processing/tree/master/lib/cascade-files
 
 
-mouth_cascade = None
-nose_cascade = None
+def loadMouthCascade():
+    mouth_cascade = None
+    try:
+        if HAAR_MOUTH_CHECK:
+            mouth_cascade = image.HaarCascade("haar/haarcascade_mcs_mouth.cascade", stages=HAAR_MOUTH_STAGES)
+            print("mouth haar loaded")
+    except:
+        print("no mouth haar cascade")
+    return mouth_cascade
 
-try:
-    if HAAR_MOUTH_CHECK:
-        mouth_cascade = image.HaarCascade("haar/haarcascade_mcs_mouth.cascade", stages=HAAR_MOUTH_STAGES)
-        print("mouth haar loaded")
-except:
-    print("no mouth haar cascade")
-try:
-    if HAAR_NOSE_CHECK:
-        nose_cascade = image.HaarCascade("haar/haarcascade_mcs_nose.cascade", stages=HAAR_NOSE_STAGES)
-        print("nose haar loaded")
-except:
-    print("no nose haar cascade")
+def loadNoseCascade():
+    nose_cascade = None
+    try:
+        if HAAR_NOSE_CHECK:
+            nose_cascade = image.HaarCascade("haar/haarcascade_mcs_nose.cascade", stages=HAAR_NOSE_STAGES)
+            print("nose haar loaded")
+    except:
+        print("no nose haar cascade")
+    return nose_cascade
 
 
 # FPS clock
@@ -170,10 +176,13 @@ def haarTest(img,haar,thresholdSize = 0,draw = True, rio = None):
     return des
 
 def facsTest(img,thresholdSize = THRESHOLD_SIZE):
+    face_cascade = loadFaceCascade()
     return haarTest(img,face_cascade,thresholdSize)
 def mouthTest(img,thresholdSize = 0, rio = None):
+    mouth_cascade = loadMouthCascade()
     return mouth_cascade and haarTest(img,mouth_cascade,thresholdSize,rio = rio)
 def noseTest(img,thresholdSize = 0, rio = None):
+    nose_cascade = loadNoseCascade()
     return nose_cascade and haarTest(img,nose_cascade,thresholdSize,rio = rio)
 
 def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
@@ -303,7 +312,7 @@ def recognition(timeout = 500):
             sliceCnt = CHECK_MIN_CNT or len(userDescArr)
             matchResult= sum(userDescArr[:sliceCnt])/sliceCnt
             matchArr.append(matchResult)
-            print(userDescArr,sliceCnt)
+            # print("sliceCnt,userDescArr: ",sliceCnt,userDescArr)
             if matchResult < matchMin :
                 matchMin = matchResult
                 if matchResult < MATCH_THRESHOLD:
@@ -332,6 +341,10 @@ def debugFun():
         # Print FPS.
         # Note: Actual FPS is higher, streaming the FB makes it slower.
         #print(clock.fps())
+
+        img = sensor.snapshot()
+        mouthTest(img)
+        noseTest(img)
 
 def registerUser(user):
     sampling(user,SAMPLING_COUNT)
