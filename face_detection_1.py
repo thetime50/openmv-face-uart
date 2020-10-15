@@ -21,6 +21,9 @@ sensor.set_contrast(3)
 sensor.set_gainceiling(16)
 # HQVGA and GRAYSCALE are the best for face tracking.
 sensor.set_framesize(sensor.HQVGA) # HQVGA 240x160
+# sensor.set_framesize(sensor.HQQVGA) # HQQVGA: 160x80
+# sensor.set_framesize(sensor.QQVGA) # QQVGA: 160x120
+
 sensor.set_pixformat(sensor.GRAYSCALE)
 
 sensor.skip_frames(time = 2000) #等待5s
@@ -40,8 +43,8 @@ HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
 HAAR_MOUTH_STAGES = 50
 HAAR_NOSE_STAGES = 50
 
-HAAR_MOUTH_CHECK = False # 7k
-HAAR_NOSE_CHECK = False # 1K
+HAAR_MOUTH_CHECK = False #True # 7k
+HAAR_NOSE_CHECK = False #True # 1K
 
 # descriptor 样本比较参数
 DESC_THRESHOLD = 95 # 70 default 0-100
@@ -98,24 +101,27 @@ except:
     print('mkdir photo')
     os.mkdir('photo')
 
-
+face_cascade = image.HaarCascade("frontalface", stages=HAAR_FACE_STAGES)
 def loadFaceCascade():
     # Load Haar Cascade
     # By default this will use all stages, lower satges is faster but less accurate.
-    face_cascade = image.HaarCascade("frontalface", stages=HAAR_FACE_STAGES)
-    # print(face_cascade)
+    # face_cascade = image.HaarCascade("frontalface", stages=HAAR_FACE_STAGES)
+    # # print(face_cascade)
+    # return face_cascade
+    global face_cascade
     return face_cascade
 
 # https://github.com/opencv/opencv/tree/master/data/haarcascades
 # https://github.com/openmv/openmv/blob/master/ml/haarcascade/cascade_convert.py
-# https://github.com/atduskgreg/opencv-processing/tree/master/lib/cascade-files
-
+# https://github.com/atduskgreg/opencv-processing/tree/master/lib/cascade-files #这数据太大了
+# https://stackoverflow.com/questions/9015498/need-haar-casscades-for-nose-eyes-lipsmouth
+# http://alereimondo.no-ip.org/OpenCV/34 #没法转换
 
 def loadMouthCascade():
     mouth_cascade = None
     try:
         if HAAR_MOUTH_CHECK:
-            mouth_cascade = image.HaarCascade("haar/haarcascade_mcs_mouth.cascade", stages=HAAR_MOUTH_STAGES)
+            # mouth_cascade = image.HaarCascade("haar/haarcascade_mcs_mouth.cascade", stages=HAAR_MOUTH_STAGES)
             print("mouth haar loaded")
     except:
         print("no mouth haar cascade")
@@ -125,7 +131,7 @@ def loadNoseCascade():
     nose_cascade = None
     try:
         if HAAR_NOSE_CHECK:
-            nose_cascade = image.HaarCascade("haar/haarcascade_mcs_nose.cascade", stages=HAAR_NOSE_STAGES)
+            # nose_cascade = image.HaarCascade("haar/haarcascade_mcs_nose.cascade", stages=HAAR_NOSE_STAGES)
             print("nose haar loaded")
     except:
         print("no nose haar cascade")
@@ -177,13 +183,19 @@ def haarTest(img,haar,thresholdSize = 0,draw = True, rio = None):
 
 def facsTest(img,thresholdSize = THRESHOLD_SIZE):
     face_cascade = loadFaceCascade()
-    return haarTest(img,face_cascade,thresholdSize)
+    result = haarTest(img,face_cascade,thresholdSize)
+    # del face_cascade
+    return result
 def mouthTest(img,thresholdSize = 0, rio = None):
     mouth_cascade = loadMouthCascade()
-    return mouth_cascade and haarTest(img,mouth_cascade,thresholdSize,rio = rio)
+    result = mouth_cascade and haarTest(img,mouth_cascade,thresholdSize,rio = rio)
+    # del mouth_cascade
+    return result
 def noseTest(img,thresholdSize = 0, rio = None):
     nose_cascade = loadNoseCascade()
-    return nose_cascade and haarTest(img,nose_cascade,thresholdSize,rio = rio)
+    result = nose_cascade and haarTest(img,nose_cascade,thresholdSize,rio = rio)
+    # del nose_cascade
+    return result
 
 def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
     size = 0
@@ -343,6 +355,7 @@ def debugFun():
         #print(clock.fps())
 
         img = sensor.snapshot()
+        # facsTest(img)
         mouthTest(img)
         noseTest(img)
 
