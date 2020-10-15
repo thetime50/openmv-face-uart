@@ -35,7 +35,8 @@ sensor.skip_frames(time = 2000) #等待5s
 ################ 参数定义 ################
 #########################################
 
-THRESHOLD_SIZE = 9000 # 脸部大小阈值
+THRESHOLD_SIZE_MIN = 7000 # 脸部大小阈值
+# THRESHOLD_SIZE_MAX = 12000 # 脸部大小阈值
 SAMPLING_COUNT = 30 # 15
 
 # HaarCascade 人脸检测
@@ -160,7 +161,7 @@ def stateTx(state):
         oldState = state
         return uartTx(state)
 
-def haarTest(img,haar,thresholdSize = 0,draw = True, rio = None):
+def haarTest(img,haar,desSizeMax = 0,draw = True, rio = None):
     # Find objects.
     # Note: Lower scale factor scales-down the image more and detects smaller objects.
     # Higher threshold results in a higher detection rate, with more false positives.
@@ -171,35 +172,35 @@ def haarTest(img,haar,thresholdSize = 0,draw = True, rio = None):
     # Draw objects
     des = None
     maxSize = 0
-    #thresholdSize = 0
+    #faceSizeMax = 0
     for r in objects:
         size = r[2] * r[3]
-        if size > thresholdSize and size > maxSize:
+        if size > desSizeMax and size > maxSize:
             maxSize = size
             des = r
 
     draw and des and img.draw_rectangle(des)
     return des
 
-def facsTest(img,thresholdSize = THRESHOLD_SIZE):
+def facsTest(img,faceSizeMax = THRESHOLD_SIZE_MIN):
     face_cascade = loadFaceCascade()
-    result = haarTest(img,face_cascade,thresholdSize)
+    result = haarTest(img,face_cascade,faceSizeMax)
     # del face_cascade
     return result
-def mouthTest(img,thresholdSize = 0, rio = None):
+def mouthTest(img,mouthSizeMax = 0, rio = None):
     mouth_cascade = loadMouthCascade()
-    result = mouth_cascade and haarTest(img,mouth_cascade,thresholdSize,rio = rio)
+    result = mouth_cascade and haarTest(img,mouth_cascade,mouthSizeMax,rio = rio)
     # del mouth_cascade
     return result
-def noseTest(img,thresholdSize = 0, rio = None):
+def noseTest(img,noseSizeMax = 0, rio = None):
     nose_cascade = loadNoseCascade()
-    result = nose_cascade and haarTest(img,nose_cascade,thresholdSize,rio = rio)
+    result = nose_cascade and haarTest(img,nose_cascade,noseSizeMax,rio = rio)
     # del nose_cascade
     return result
 
-def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
+def samplingSkip(cnt,faceSizeMax = THRESHOLD_SIZE_MIN,interval = 300):
     size = 0
-    maxFace = thresholdSize
+    maxFace = faceSizeMax
     face = None
     img = None
     for i in range(cnt):
@@ -207,12 +208,13 @@ def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
         while not face:
             pyb.LED(BLUE_LED_PIN).on()
             img = sensor.snapshot()
-            face = facsTest(img,thresholdSize)
+            face = facsTest(img,faceSizeMax)
             checkDisplay(img)
             if face:
                 size = face[2] * face[3]
                 maxFace = max(maxFace, size)
-                if size < maxFace * 0.87:
+                if size < maxFace * 0.85:
+                # if False: # 不做大脸判断了
                     face = None
                 else:# 只有这里是有效face
                     pyb.LED(BLUE_LED_PIN).off()
@@ -222,7 +224,7 @@ def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
     
 
 def sampling(user,cnt,interval = 500):
-    # maxFace = THRESHOLD_SIZE
+    # maxFace = THRESHOLD_SIZE_MIN
     maxFace = samplingSkip(SAMPLING_SKIP)
     clearUser(user)
     for n in range(cnt):
