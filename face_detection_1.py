@@ -37,6 +37,11 @@ SAMPLING_COUNT = 30 # 15
 
 # HaarCascade 人脸检测
 HAAR_FACE_STAGES = 50 # 25 lod #数值越大越严格
+HAAR_MOUTH_STAGES = 50
+HAAR_NOSE_STAGES = 50
+
+HAAR_MOUTH_CHECK = False
+HAAR_NOSE_CHECK = False
 
 # descriptor 样本比较参数
 DESC_THRESHOLD = 95 # 70 default 0-100
@@ -99,6 +104,28 @@ except:
 face_cascade = image.HaarCascade("frontalface", stages=HAAR_FACE_STAGES)
 print(face_cascade)
 
+# https://github.com/opencv/opencv/tree/master/data/haarcascades
+# https://github.com/openmv/openmv/blob/master/ml/haarcascade/cascade_convert.py
+# https://github.com/atduskgreg/opencv-processing/tree/master/lib/cascade-files
+
+
+mouth_cascade = None
+nose_cascade = None
+
+try:
+    if HAAR_MOUTH_CHECK:
+        mouth_cascade = image.HaarCascade("haar/haarcascade_mcs_mouth.cascade", stages=HAAR_MOUTH_STAGES)
+        print("mouth haar loaded")
+except:
+    print("no mouth haar cascade")
+try:
+    if HAAR_NOSE_CHECK:
+        nose_cascade = image.HaarCascade("haar/haarcascade_mcs_nose.cascade", stages=HAAR_NOSE_STAGES)
+        print("nose haar loaded")
+except:
+    print("no nose haar cascade")
+
+
 # FPS clock
 clock = time.clock()
 
@@ -121,24 +148,33 @@ def stateTx(state):
         oldState = state
         return uartTx(state)
 
-def facsTest(img,thresholdSize = THRESHOLD_SIZE):
+def haarTest(img,haar,thresholdSize = 0,draw = True, rio = None):
     # Find objects.
     # Note: Lower scale factor scales-down the image more and detects smaller objects.
     # Higher threshold results in a higher detection rate, with more false positives.
-    objects = img.find_features(face_cascade, threshold=0.75, scale_factor=1.25)
+    if not rio:
+        rio=[0,0,img.width,img.height]
+    objects = img.find_features(haar, threshold=0.75, scale_factor=1.25, rio=rio)
 
     # Draw objects
-    face = None
+    des = None
     maxSize = 0
     #thresholdSize = 0
     for r in objects:
         size = r[2] * r[3]
         if size > thresholdSize and size > maxSize:
             maxSize = size
-            face = r
+            des = r
 
-    face and img.draw_rectangle(face)
-    return face
+    draw and des and img.draw_rectangle(des)
+    return des
+
+def facsTest(img,thresholdSize = THRESHOLD_SIZE):
+    return haarTest(img,face_cascade,thresholdSize)
+def mouthTest(img,thresholdSize = 0, rio = None):
+    return mouth_cascade and haarTest(img,mouth_cascade,thresholdSize,rio = rio)
+def noseTest(img,thresholdSize = 0, rio = None):
+    return nose_cascade and haarTest(img,nose_cascade,thresholdSize,rio = rio)
 
 def samplingSkip(cnt,thresholdSize = THRESHOLD_SIZE,interval = 300):
     size = 0
@@ -219,7 +255,6 @@ def recognition(timeout = 500):
     face = None
     img = None
 
-
     matchMin = 999999
     matchUser = ''
     matchArr = []
@@ -236,43 +271,48 @@ def recognition(timeout = 500):
         face = facsTest(img)
         checkDisplay(img)
     if not face:
-        return matchUser,face
+        return matchUser,face,img
 
     if not len(users):
         # pyb.delay(timeout)
-        return matchUser,face
+        return matchUser,face,img
 
     nowDesc = img.find_lbp(face)
 
-    for user in users:
-        userDescArr = []
-        baseDpath = "%s/%s" %(basePath,user)
-        files = os.listdir(baseDpath)
-        for file_ in files:
-            # descFpath = baseDpath+"/"+file_
-            # oldDesc = image.load_descriptor(descFpath)
+    photoFpath = ""
+    try:
+        for user in users:
+            userDescArr = []
+            baseDpath = "%s/%s" %(basePath,user)
+            files = os.listdir(baseDpath)
+            for file_ in files:
+                # descFpath = baseDpath+"/"+file_
+                # oldDesc = image.load_descriptor(descFpath)
 
-            photoFpath = baseDpath+"/"+file_
-            oldImg = image.Image(photoFpath)
-            oldDesc = oldImg.find_lbp((0, 0, oldImg.width(), oldImg.height()))
+                photoFpath = baseDpath+"/"+file_
+                oldImg = image.Image(photoFpath)
+                oldDesc = oldImg.find_lbp((0, 0, oldImg.width(), oldImg.height()))
 
-            match = image.match_descriptor(
-                nowDesc, oldDesc,
-                DESC_THRESHOLD,
-                DESC_FILTER_OUTLIERS
-            )
-            userDescArr.append(match)
-        userDescArr.sort()
-        sliceCnt = CHECK_MIN_CNT or len(userDescArr)
-        matchResult= sum(userDescArr[:sliceCnt])/sliceCnt
-        matchArr.append(matchResult)
-        print(userDescArr,sliceCnt)
-        if matchResult < matchMin :
-            matchMin = matchResult
-            if matchResult < MATCH_THRESHOLD:
-                matchUser = user
+                match = image.match_descriptor(
+                    nowDesc, oldDesc,
+                    DESC_THRESHOLD,
+                    DESC_FILTER_OUTLIERS
+                )
+                userDescArr.append(match)
+            userDescArr.sort()
+            sliceCnt = CHECK_MIN_CNT or len(userDescArr)
+            matchResult= sum(userDescArr[:sliceCnt])/sliceCnt
+            matchArr.append(matchResult)
+            print(userDescArr,sliceCnt)
+            if matchResult < matchMin :
+                matchMin = matchResult
+                if matchResult < MATCH_THRESHOLD:
+                    matchUser = user
+    except : # OSError,err:
+        print("recognition error:",photoFpath) # ,err)
+
     print(matchMin,matchUser,matchArr,len(matchArr)>=2 and (matchArr[0]-matchArr[1]))
-    return matchUser,face
+    return matchUser,face,img
 
 def debugFun():
     #sampling('233',10,500)
@@ -338,7 +378,11 @@ def clearUsers():
 
 def checkUser():
     result = 0
-    user,face = recognition(20)
+    user,face,img = recognition(20)
+
+    img and face and mouthTest(img, rio = face)
+    img and face and noseTest(img, rio = face)
+
     print("user:",user,"face:",face)
     if face:
         result = (result | RPS_FACE)
